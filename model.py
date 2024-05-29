@@ -22,8 +22,8 @@ class Type(ABC):
                 return True
             case Intersection(types1), Intersection(types2):
                 # keyFunc = cmp_to_key(makeCmp(less))
-                types1.sort()
-                types2.sort()
+                # types1.sort()
+                # types2.sort()
                 return types1 < types2
             case _, _:
                 return False
@@ -91,12 +91,29 @@ class Constraint:
 
 @dataclass()
 class Renaming:
-    subs: dict[Variable, Variable]
+    # subs: dict[Variable, Variable]
+    subs: list[list[Variable]]
+
+    def inverse(self, b: Variable) -> Variable | None:
+        for (k, v) in self.subs:
+            if b == v: return k
+        return None
+
+    def get(self, a: Variable, default: Variable | None = None) -> Variable | None:
+        for (k, v) in self.subs:
+            if a == k: return v
+        return default
+
+    def __eq__(self, other: 'Renaming') -> bool:
+        for k, v in self.subs:
+            if other.get(k) != v:
+                return False
+        return len(self.subs) == len(other.subs)
 
     def applyTo(self, t: Type) -> Type:
         match t:
             case Variable(_) as a:
-                return self.subs.get(a, a)
+                return self.get(a, default=a) # type: ignore
             case Intersection(types):
                 return Intersection([self.applyTo(t) for t in types])
             case Arrow(l, r):
@@ -105,4 +122,4 @@ class Renaming:
                 return t
 
     def __str__(self) -> str:
-        return "{" + r", ".join([f"{k} -> {v}" for k, v in self.subs.items()]) + "}"
+        return "{" + r", ".join([f"{k} -> {v}" for k, v in sorted(self.subs)]) + "}"

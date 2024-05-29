@@ -84,7 +84,7 @@ bcomb = typify((
     (b, c), (a, b), a, c
 )),
 scomb = typify((
-    (a, c, d), (b, c), [a, b], c
+    (a, c, d), (b, c), [a, b], d
 )),
 sscomb = typify((
     (b, c, d), [(a, d, e), b], [a, c], e
