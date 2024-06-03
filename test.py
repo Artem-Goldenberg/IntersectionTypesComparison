@@ -4,10 +4,15 @@ from utils import randomRename
 
 collection = list(types.values())
 
-def deepType(depth: int, width: int, varsCount: int) -> tuple[Type, Type, Renaming]:
+def testType(depth: int, width: int, varsCount: int) -> tuple[Type, Type, Renaming]:
     vars = [Variable(f"a{i}") for i in range(varsCount)]
     k = 0
-    previous = Intersection([random.choice(collection) for _ in range(width)])
+    types: list[Type] = []
+    for _ in range(width - 1):
+        type = random.choice(collection)
+        type, _ = randomRename(type, vars, unique=False)
+        types.append(type)
+    previous = Intersection(types)
 
     for i in range(depth):
         types: list[Type] = []
@@ -28,7 +33,12 @@ def deepType(depth: int, width: int, varsCount: int) -> tuple[Type, Type, Renami
 def manyVariables(depth: int, width: int = 7) -> tuple[Type, Type, Renaming]:
     vars = [Variable(f"a{i}") for i in range(width * 2)]
     k = 0
-    previous = Intersection([random.choice(collection) for _ in range(width)])
+    types: list[Type] = []
+    for _ in range(width - 1):
+        type = random.choice(collection)
+        type, _ = randomRename(type, vars, unique=False)
+        types.append(type)
+    previous = Intersection(types)
 
     for i in range(depth):
         types: list[Type] = []

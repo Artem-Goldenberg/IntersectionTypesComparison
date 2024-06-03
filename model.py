@@ -89,6 +89,16 @@ class Constraint:
                 strRight = a
         return f"{strLeft} = {strRight}"
 
+@dataclass
+class VariableConstraint(Constraint):
+    left: set[Variable]
+    right: set[Variable]
+
+    def __str__(self):
+        strLeft = ", ".join(map(str, self.left))
+        strRight = ", ".join(map(str, self.right))
+        return f"[{strLeft}] = [{strRight}]"
+
 @dataclass()
 class Renaming:
     # subs: dict[Variable, Variable]
