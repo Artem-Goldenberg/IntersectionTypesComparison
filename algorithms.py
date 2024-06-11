@@ -6,8 +6,6 @@ from model import *
 from utils import *
 
 Solution = dict[Variable, Variable]
-AllowedMap = dict[Variable, set[Variable]]
-AllowedList = list[tuple[Variable, set[Variable]]]
 SizeClassMap = defaultdict[int, list[Type]]
 
 def comparePlain(t: Type, s: Type) -> Renaming | None:
@@ -55,37 +53,109 @@ def applySolution(C: list[VariableConstraint], S: Solution) -> bool:
         for a in list(c.left):
             if a in S:
                 try: c.right.remove(S[a])
-                except KeyError: return False
+                except ValueError: return False
                 c.left.remove(a)
     return True
 
+@dataclass
+class Occurrence:
+    var: Variable
+    used: bool = False
+    # constraint: VariableConstraint
+
+@dataclass
+class AllowedVariable:
+    var: Variable
+    evidence: list[Occurrence]
+
+    def __eq__(self, other: 'AllowedVariable') -> bool:
+        return self.var == other.var
+
+    def __hash__(self) -> int:
+        return hash(self.var)
+
+
+AllowedMap = dict[Variable, set[Variable]]
+AllowedList = list[tuple[Variable, set[AllowedVariable]]]
+
 
 def propagationCase(c: VariableConstraint, C: list[Constraint], S: Solution) -> Solution | None:
-    allowed: dict[Variable, set[Variable]] = {}
+    allowed: dict[Variable, set[AllowedVariable]] = {}
 
-    if not applySolution(C, S): #type: ignore
+    if not applySolution([c] + C, S): #type: ignore
         return None
+    
+    occurrences: list[list[Occurrence]] = []
+    # constraints: list[tuple[set[Variable], set[AllowedVariable]]] = []
+    for constr in c, *C:
+        assert isinstance(constr, VariableConstraint)
+        occurrences.append([Occurrence(var) for var in constr.right])
 
-    for v in c.left:
-        # guaranteed that v was never here before
-        allowed[v] = set(c.right)
+    # for v in c.left:
+    #     # guaranteed that v was never here before
+    #     allowed[v] = set(AllowedVariable(var, ) for var in c.right)
 
-    for varConstr in C:
-        assert isinstance(varConstr, VariableConstraint)
-        for v in varConstr.left:
+    for constr, occs in zip([c] + C, occurrences):
+        assert isinstance(constr, VariableConstraint)
+        for v in constr.left:
             if v not in allowed:
-                allowed[v] = set(varConstr.right)
+                allowed[v] = set(AllowedVariable(occ.var, [occ]) for occ in occs)
             else:
-                allowed[v].intersection_update(varConstr.right)
+                # find intersection
+                for allowedVar in allowed[v].copy():
+                    if allowedVar.var not in constr.right:
+                        allowed[v].remove(allowedVar)
+                    else:
+                        for occ in occs:
+                            if occ.var == allowedVar.var:
+                                allowedVar.evidence.append(occ)
+                                break
+                        else: assert False
+
+                # allowed[v].intersection(varConstr.right)
+                # allowed[v].intersection_update(varConstr.right)
     
     allowedList = sorted(allowed.items(), key=lambda item: len(item[1]))
-    solution = solveVariableConstraints(allowedList, C) # type: ignore
+    solution = solveVariableConstraints(allowedList) # type: ignore
     if solution is None: return None
 
     assert len(solution) == len(allowedList)
 
     S.update({k[0]: v for k, v in zip(allowedList, solution)})
     return S
+
+
+def solveVariableConstraints(allowed: AllowedList) -> list[Variable] | None:
+    if not allowed:
+        return []
+    
+    (a, allowedVars), *allowed = allowed
+
+    if not allowedVars:
+        # conflicting constraints on v
+        return None
+
+    def isTaken(allowedVar: AllowedVariable) -> bool:
+        for occ in allowedVar.evidence:
+            if occ.used:
+                return True
+        return False
+    
+    for allowedVar in allowedVars:
+        if isTaken(allowedVar):
+            continue
+
+        for occ in allowedVar.evidence:
+            occ.used = True
+
+        solution = solveVariableConstraints(allowed)
+        if solution is not None:
+            return [allowedVar.var] + solution
+
+        for occ in allowedVar.evidence:
+            occ.used = False
+    
+    return None
 
 
 def SizeCountConstrPropSolve(C: list[Constraint], S: Solution) -> Solution | None:
@@ -136,36 +206,6 @@ def SizeCountConstrPropSolve(C: list[Constraint], S: Solution) -> Solution | Non
                     return S1
 
             return None
-
-
-def solveVariableConstraints(allowed: AllowedList, C: list[VariableConstraint]) -> list[Variable] | None:
-    if not allowed:
-        return []
-    
-    (a, vars), *allowed = allowed
-
-    if not vars:
-        # conflicting constraints on v
-        return None
-    
-    for var in vars:
-        for c in C:
-            if a in c.left:
-                for v, allowedVars in allowed:
-                    if v in c.left:
-                        allowedVars.discard(var)
-
-        solution = solveVariableConstraints(allowed, C)
-        if solution is not None:
-            return solution + [var]
-
-        for c in C:
-            if a in c.left:
-                for v, allowedVars in allowed:
-                    if v in c.left:
-                        allowedVars.add(var)
-    
-    return None
 
 
 def ConstrPropSolve(C: list[Constraint], S: Solution) -> Solution | None:
@@ -222,12 +262,13 @@ def ConstrPropSolve(C: list[Constraint], S: Solution) -> Solution | None:
 def getVarBound(types1: list[Type], types2: list[Type]) -> int | None:
     varBound = 0
     for v1, v2 in zip(types1, types2):
-        if v1 is Variable and v2 is Variable:
+        if isinstance(v1, Variable) and isinstance(v2, Variable):
             varBound += 1
-        elif v1 is not Variable and v2 is not Variable:
+        elif not isinstance(v1, Variable) and not isinstance(v2, Variable):
             return varBound
         else:
             return None
+    return varBound
 
 
 def sizeSplit(types1: list[Type], types2: list[Type]) -> Generator[list[Constraint], None, None]:

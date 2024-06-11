@@ -36,7 +36,6 @@ def getVars(t: Type) -> set[Variable]:
             return reduce(lambda vs1, vs2: vs1.union(vs2), map(getVars, types), set())
     assert False
 
-def expand(t: Type) -> Type: ...
 def removeDuplicates(t: Type) -> Type:
     match t:
         case Variable(_):
@@ -52,6 +51,9 @@ def removeDuplicates(t: Type) -> Type:
                     types.pop(i)
             return Intersection(types)
     assert False
+
+def normalForm(t: Type) -> Type:
+    return typeSort(removeDuplicates(typeSort(t)))
 
 def randomRename(t: Type, allowedVars: list[Variable] | None = None, unique: bool = True) -> tuple[Type, Renaming]:
     vars = getVars(t)

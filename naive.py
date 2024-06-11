@@ -1,8 +1,6 @@
 from model import *
 from utils import *
 
-def normalForm(t: Type) -> Type:
-    return removeDuplicates(typeSort(t))
 
 def getRenaming(sVars: list[Variable], current: Renaming, index: int, stop: int):
     if index == stop:
@@ -24,10 +22,8 @@ def checkRenaming(s: Renaming, sVars: list[Variable]) -> bool:
     return True
 
 def naiveComparison(t: Type, s: Type) -> Renaming | None:
-    t = typeSort(t)
-    t = removeDuplicates(t)
-    s = typeSort(s)
-    s = removeDuplicates(s)
+    t = normalForm(t)
+    s = normalForm(s)
 
     tVars = getVars(t)
     sVars = getVars(s)
@@ -51,7 +47,7 @@ def naiveComparison(t: Type, s: Type) -> Renaming | None:
         if not checkRenaming(renaming, sVarsList):
             continue
 
-        t1 = typeSort(renaming.applyTo(t))
+        t1 = normalForm(renaming.applyTo(t))
         if t1 == s:
             return renaming
     

@@ -105,30 +105,3 @@ zero = typify((
     om, a, a
 ))
 )
-
-
-# (TVar "0" :-> TVar "1" :-> TVar "5" :-> TVar "6") :/\ (TVar "2" :-> TVar "3") 
-# :-> 
-# TVar "0" :/\ (TVar "3" :-> TVar "4" :-> TVar "5") :/\ TVar "2"
-# :-> 
-# TVar "1" :/\ TVar "4" 
-# :-> 
-# TVar "6"
-
-
-
-
-# print(top, one, two, three, omega1, omega2, omega3 sep="\n")
-
-"""
-
-    ,(let (f,s) = infer zero in null f && (s `alphaEqTy` (Univ :-> TVar "0" :-> TVar "0")),"infer zero")
-    ,((uncurry curryFrom . infer) (Trm 0 0 [Trm 0 0 []]) `alphaEqTy` ((TVar "0" :-> TVar "1") :/\ TVar "0" :-> TVar "1"),"infer (Trm 0 0 [Trm 0 0 []])")
-    ,(infer0 badTest1 `alphaEqTy` (((Univ :-> TVar "1") :-> TVar "2") :/\ (((Univ :-> TVar "0") :-> TVar "1") :/\ TVar "0") :-> TVar "2"),"infer $ Trm 1 0 [Trm 1 1 [Trm 1 2 []]]") -- 25
-    ,(infer0 badTest2 `alphaEqTy` ((TVar "0" :-> ((Univ :-> TVar "1") :-> TVar "2")) :/\ (TVar "0" :/\ TVar "1") :-> TVar "2"),"infer $ Trm 1 0 [Trm 0 0 [], Trm 1 1 []]")
-    ,(True,"True")
-    ,(True,"True")
-    ,(True,"True") 
-    ,(True,"True") -- 30
-    ]
-"""
